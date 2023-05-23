@@ -438,90 +438,48 @@ bool solution(int **sol_mat, vector<sum> &sums, int m, int n, stack<state> state
         mat_iter iter = state_stack.top().iter;
         int curr_val = state_stack.top().val;
         state_stack.pop();
+        if (curr_val < 10){
         
-        if (iter.curr.first == -999 || iter.curr.second == -999){
-            cout << "END:" << endl;
-            print_one_matrix(sol_mat, m, n);
-            return true;
-        }else{
-            if (curr_val < 10){
-            
-                // Update the matrix with the new val for iter.curr
-                sol_mat[iter.curr.first][iter.curr.second] = curr_val;
-                bool partial_correctness = true;
-                for (int i = 0; i< sums.size(); i++){
-                    if (!sums[i].fullCheck(sol_mat, iter.curr, curr_val)){
-                        partial_correctness = false;
-                        break;
-                    }
+            // Update the matrix with the new val for iter.curr
+            sol_mat[iter.curr.first][iter.curr.second] = curr_val;
+            bool partial_correctness = true;
+            for (int i = 0; i< sums.size(); i++){
+                if (!sums[i].fullCheck(sol_mat, iter.curr, curr_val)){
+                    partial_correctness = false;
+                    break;
                 }
-                if (partial_correctness){
-                    state_stack.push(state(iter, curr_val));
-                    mat_iter temp(iter);
-                    temp.set_next();
-                    if (temp.curr.first == -999 || temp.curr.second == -999){
-                        cout << "END INSIDE:" << endl;
-                        print_one_matrix(sol_mat, m, n);
-                        return true;
-                    }
-                    state_stack.push(state(temp, 1));
-                }else{
-                    curr_val += 1;
-                    sol_mat[iter.curr.first][iter.curr.second] = -2;
-                    state_stack.push(state(iter, curr_val));
+            }
+            if (partial_correctness){
+                state_stack.push(state(iter, curr_val));
+                mat_iter temp(iter);
+                temp.set_next();
+                if (temp.curr.first == -999 || temp.curr.second == -999){
+                    cout << "END INSIDE:" << endl;
+                    print_one_matrix(sol_mat, m, n);
+                    return true;
                 }
-                    
+                state_stack.push(state(temp, 1));
             }else{
-                while(!state_stack.empty()){
-                    mat_iter iter = state_stack.top().iter;
-                    int curr_val = state_stack.top().val;
-                    state_stack.pop();
-                    sol_mat[iter.curr.first][iter.curr.second] = -2;
-                    curr_val += 1;
-                    if (curr_val < 10){
-                        state_stack.push(state(iter, curr_val));
-                        break;
-                    }
+                curr_val += 1;
+                sol_mat[iter.curr.first][iter.curr.second] = -2;
+                state_stack.push(state(iter, curr_val));
+            }
+                
+        }else{
+            while(!state_stack.empty()){
+                mat_iter iter = state_stack.top().iter;
+                int curr_val = state_stack.top().val;
+                state_stack.pop();
+                sol_mat[iter.curr.first][iter.curr.second] = -2;
+                curr_val += 1;
+                if (curr_val < 10){
+                    state_stack.push(state(iter, curr_val));
+                    break;
                 }
             }
         }
     }
     return false;
-
-
-    /*
-    if (iter.curr.first == -999 || iter.curr.second == -999){
-        cout << "END:" << endl;
-        print_one_matrix(sol_mat, m, n);
-        return true;
-    }else{
-        for (int val = 1; val < 10; val++){
-            // Update the matrix with the new val for iter.curr
-            sol_mat[iter.curr.first][iter.curr.second] = val;
-            bool partial_correctness = true;
-            
-            for (int i = 0; i< sums.size(); i++){
-                if (!sums[i].fullCheck(sol_mat, iter.curr, val)){
-                    partial_correctness = false;
-                    break;
-                }
-            }
-            
-            if (partial_correctness){
-                bool sol;
-                mat_iter temp(iter);
-                temp.set_next();
-                sol = solution(sol_mat, sums, m, n, temp);                
-                if (sol){
-                    return true;
-                }
-            }
-            sol_mat[iter.curr.first][iter.curr.second] = -2;
-        }
-        return false;
-    }
-    return true;
-    */
 }
 
 
