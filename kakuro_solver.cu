@@ -373,9 +373,9 @@ int main(int argc, char **argv){
 	printf("==prop== Max Threads Per Block: -- %d \n", prop.maxThreadsPerBlock);
 
 	int grid_dim =		// TO DO
-		int block_dim = // To DO
+	int block_dim = // To DO
 
-		int no_sums = sums.size();
+	int no_sums = sums.size();
 
 	// Flattening sums and matrix
 	int *h_sum_starts_x = new int[no_sums];
