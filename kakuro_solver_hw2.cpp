@@ -8,6 +8,7 @@
 #include <bits/stdc++.h>
 #include <array>
 #include <omp.h>
+#include <stack>
 
 using namespace std;
 
@@ -425,15 +426,77 @@ struct mat_iter{
     }
 };
 
+struct state{
+    mat_iter iter;
+    int val;
 
-bool solution(int **sol_mat, vector<sum> &sums, int m, int n, mat_iter iter) {    
+    state(mat_iter _iter, int _val): iter(_iter), val(_val){}
+};
+
+bool solution(int **sol_mat, vector<sum> &sums, int m, int n, stack<state> state_stack) {    
+    while(!state_stack.empty()){
+        mat_iter iter = state_stack.top().iter;
+        int curr_val = state_stack.top().val;
+        state_stack.pop();
+        
+        if (iter.curr.first == -999 || iter.curr.second == -999){
+            cout << "END:" << endl;
+            print_one_matrix(sol_mat, m, n);
+            return true;
+        }else{
+            if (curr_val < 10){
+            
+                // Update the matrix with the new val for iter.curr
+                sol_mat[iter.curr.first][iter.curr.second] = curr_val;
+                bool partial_correctness = true;
+                for (int i = 0; i< sums.size(); i++){
+                    if (!sums[i].fullCheck(sol_mat, iter.curr, curr_val)){
+                        partial_correctness = false;
+                        break;
+                    }
+                }
+                if (partial_correctness){
+                    state_stack.push(state(iter, curr_val));
+                    mat_iter temp(iter);
+                    temp.set_next();
+                    if (temp.curr.first == -999 || temp.curr.second == -999){
+                        cout << "END INSIDE:" << endl;
+                        print_one_matrix(sol_mat, m, n);
+                        return true;
+                    }
+                    state_stack.push(state(temp, 1));
+                }else{
+                    curr_val += 1;
+                    sol_mat[iter.curr.first][iter.curr.second] = -2;
+                    state_stack.push(state(iter, curr_val));
+                }
+                    
+            }else{
+                while(!state_stack.empty()){
+                    mat_iter iter = state_stack.top().iter;
+                    int curr_val = state_stack.top().val;
+                    state_stack.pop();
+                    sol_mat[iter.curr.first][iter.curr.second] = -2;
+                    curr_val += 1;
+                    if (curr_val < 10){
+                        state_stack.push(state(iter, curr_val));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+
+
+    /*
     if (iter.curr.first == -999 || iter.curr.second == -999){
         cout << "END:" << endl;
         print_one_matrix(sol_mat, m, n);
         return true;
     }else{
         for (int val = 1; val < 10; val++){
-            // Update the sums vector elements with the new val for iter.curr
+            // Update the matrix with the new val for iter.curr
             sol_mat[iter.curr.first][iter.curr.second] = val;
             bool partial_correctness = true;
             
@@ -458,6 +521,7 @@ bool solution(int **sol_mat, vector<sum> &sums, int m, int n, mat_iter iter) {
         return false;
     }
     return true;
+    */
 }
 
 
@@ -483,13 +547,14 @@ int main(int argc, char **argv){
 
     vector<sum> sums = get_sums(mat, m, n);
     mat_iter iter = mat_iter(sol_mat,  m, n);
-
+    stack<state> state_stack;
+    state_stack.push(state(iter, 1));
     cout << "Number of threads: " << omp_get_num_threads() << endl;
     
     double start;
     double end;
     start = omp_get_wtime();
-    bool result = solution(sol_mat, sums, m, n, iter);
+    bool result = solution(sol_mat, sums, m, n, state_stack);
     end = omp_get_wtime(); 
     printf("Work took %f seconds\n", end - start);
 
