@@ -372,8 +372,8 @@ int main(int argc, char **argv){
 	printf("==prop== #of SM -- %d \n", prop.multiProcessorCount);
 	printf("==prop== Max Threads Per Block: -- %d \n", prop.maxThreadsPerBlock);
 
-	int grid_dim =		// TO DO
-	int block_dim = // To DO
+	int grid_dim =  m;		// TO DO
+	int block_dim = n;// To DO
 
 	int no_sums = sums.size();
 

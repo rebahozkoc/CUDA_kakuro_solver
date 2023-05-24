@@ -389,7 +389,6 @@ vector<sum> get_sums(int **matrix, int m, int n){
     return sums;
 }
 
-
 struct mat_iter{
     COORD curr;
     int **mat;
@@ -426,12 +425,126 @@ struct mat_iter{
     }
 };
 
+//////////////////////////////////////////////
+// Auxiliary functions for preparing problem //
+//////////////////////////////////////////////
+
+///////////////////////////////////////////////////
+// Auxiliary functions for preparing CUDA setting //
+///////////////////////////////////////////////////
+
+void flatten_sums(vector<sum> sums, int *h_sum_starts_x, int *h_sum_starts_y, int *h_sum_ends_x, int *h_sum_ends_y, int *h_sum_hints, int *h_sum_lengths, int *h_sum_dirs, int no_sums){
+
+	for (int i = 0; i < no_sums; i++){
+
+		h_sum_starts_x[i] = sums[i].start.first;
+		h_sum_starts_y[i] = sums[i].start.second;
+
+		h_sum_ends_x[i] = sums[i].end.first;
+		h_sum_ends_y[i] = sums[i].end.second;
+
+		h_sum_hints[i] = sums[i].hint;
+		h_sum_lengths[i] = sums[i].length;
+
+		h_sum_dirs[i] = sums[i].dir;
+	}
+}
+
+void print_flattened(int *h_sum_starts_x, int *h_sum_starts_y, int *h_sum_ends_x, int *h_sum_ends_y, int *h_sum_hints, int *h_sum_lengths, int *h_sum_dirs, int no_sums){
+
+	cout << "###h_sum_starts_x: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_starts_x[i] << " ";
+	}
+	cout << endl;
+
+	cout << "###h_sum_starts_y: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_starts_y[i] << " ";
+	}
+	cout << endl;
+
+	cout << "###h_sum_ends_x: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_ends_x[i] << " ";
+	}
+	cout << endl;
+
+	cout << "###h_sum_ends_y: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_ends_y[i] << " ";
+	}
+	cout << endl;
+
+	cout << "###h_sum_hints: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_hints[i] << " ";
+	}
+	cout << endl;
+
+	cout << "###h_sum_lengths: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_lengths[i] << " ";
+	}
+	cout << endl;
+
+	cout << "###h_sum_dirs: " << endl;
+	for (int i = 0; i < no_sums; i++){
+		cout << h_sum_dirs[i] << " ";
+	}
+	cout << endl;
+}
+
+void flatten_sol_mat(int **sol_mat, int *h_sol_mat, int m, int n){
+	for (int i = 0; i < m; i++){
+		for (int j = 0; j < n; j++){
+			h_sol_mat[i * n + j] = sol_mat[i][j];
+		}
+	}
+}
+
+void print_flattened_matrix(int *h_sol_mat, int m, int n){
+
+	cout << "###Flattened matrix: " << endl;
+	for (int i = 0; i < m; i++){
+		for (int j = 0; j < n; j++){
+			cout << h_sol_mat[i * n + j] << " ";
+		}
+		cout << endl;
+	}
+	cout << endl;
+}
+
+///////////////////////////////////////////////////
+// Auxiliary functions for preparing CUDA setting //
+///////////////////////////////////////////////////
 struct state{
     mat_iter iter;
     int val;
-
     state(mat_iter _iter, int _val): iter(_iter), val(_val){}
 };
+///////////////////
+// CUDA FUNCTIONS //
+///////////////////
+
+__global__ 
+    void kakuro_kernel(int *d_sum_starts_x, int *d_sum_starts_y, int *d_sum_ends_x, int *d_sum_ends_y, int *d_sum_hints, 
+    int *d_sum_lengths, int *d_sum_dirs, int *d_sol_mat, int *d_t_mats, int m, int n, int no_sums,  volatile bool *solved){
+        *solved = true;
+            
+
+	// TO DO
+
+	// About volatile bool* solved:
+	// You can get idea from https://stackoverflow.com/questions/12505750/how-can-a-global-function-return-a-value-or-break-out-like-c-c-does%5B/url%5D for how to break out of a CUDA kernel
+	// You may or may not use it
+}
+
+///////////////////
+// CUDA FUNCTIONS //
+///////////////////
+
+
 
 bool solution(int **sol_mat, vector<sum> &sums, int m, int n, stack<state> state_stack) {    
     while(!state_stack.empty()){
@@ -502,16 +615,83 @@ int main(int argc, char **argv){
     convert_sol(mat, sol_mat, m, n);
     print_one_matrix(sol_mat, m, n);
 
+    double start;
+    double end;
+
+    // CUDA
+	cudaDeviceProp prop;
+	cudaGetDeviceProperties(&prop, 0);
+	printf("==prop== Running on device: %d -- %s \n", 0, prop.name);
+	printf("==prop== #of SM -- %d \n", prop.multiProcessorCount);
+	printf("==prop== Max Threads Per Block: -- %d \n", prop.maxThreadsPerBlock);
 
     vector<sum> sums = get_sums(mat, m, n);
+    
+    int grid_dim =  m;		// TO DO
+	int block_dim = n;// To DO
+
+    int no_sums = sums.size();
+
+	// Flattening sums and matrix
+	int *h_sum_starts_x = new int[no_sums];
+	int *h_sum_starts_y = new int[no_sums];
+	int *h_sum_ends_x = new int[no_sums];
+	int *h_sum_ends_y = new int[no_sums];
+	int *h_sum_hints = new int[no_sums];
+	int *h_sum_lengths = new int[no_sums];
+	int *h_sum_dirs = new int[no_sums];
+
+
+    flatten_sums(sums, h_sum_starts_x, h_sum_starts_y, h_sum_ends_x, h_sum_ends_y, h_sum_hints, h_sum_lengths, h_sum_dirs, no_sums);
+
+	print_flattened(h_sum_starts_x, h_sum_starts_y, h_sum_ends_x, h_sum_ends_y, h_sum_hints, h_sum_lengths, h_sum_dirs, no_sums);
+
+    int *h_sol_mat;
+	h_sol_mat = new int[m * n];
+	flatten_sol_mat(sol_mat, h_sol_mat, m, n);
+
+	print_flattened_matrix(h_sol_mat, m, n);
+
+    // Declare device pointers and copy data into device
+	int *d_sum_starts_x, *d_sum_starts_y, *d_sum_ends_x, *d_sum_ends_y, *d_sum_hints, *d_sum_lengths, *d_sum_dirs, *d_sol_mat, *d_t_mats;
+
+	cudaMalloc(&d_sum_starts_x, no_sums * sizeof(int));
+	cudaMalloc(&d_sum_starts_y, no_sums * sizeof(int));
+	cudaMalloc(&d_sum_ends_x, no_sums * sizeof(int));
+	cudaMalloc(&d_sum_ends_y, no_sums * sizeof(int));
+	cudaMalloc(&d_sum_hints, no_sums * sizeof(int));
+	cudaMalloc(&d_sum_lengths, no_sums * sizeof(int));
+	cudaMalloc(&d_sum_dirs, no_sums * sizeof(int));
+	cudaMalloc(&d_sol_mat, (m * n) * sizeof(int));
+	cudaMalloc(&d_t_mats, (m * n * grid_dim * block_dim) * sizeof(int)); // Allocating invidual matrix for each GPU thread
+	// You may use this array if you will implement a thread-wise solution
+
+    cudaMemcpy(d_sum_starts_x, h_sum_starts_x, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sum_starts_y, h_sum_starts_y, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sum_ends_x, h_sum_ends_x, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sum_ends_y, h_sum_ends_y, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sum_hints, h_sum_hints, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sum_lengths, h_sum_lengths, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sum_dirs, h_sum_dirs, no_sums * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_sol_mat, h_sol_mat, (m * n) * sizeof(int), cudaMemcpyHostToDevice);
+
+    bool *solved = (bool*)malloc(sizeof(bool));
+	*solved = false;
+	bool *d_solved;
+
+	cudaMalloc(&d_solved, sizeof(bool));
+	cudaMemcpy(d_solved, solved, sizeof(bool), cudaMemcpyHostToDevice);
+    
     mat_iter iter = mat_iter(sol_mat,  m, n);
     stack<state> state_stack;
     state_stack.push(state(iter, 1));
     cout << "Number of threads: " << omp_get_num_threads() << endl;
     
-    double start;
-    double end;
     start = omp_get_wtime();
+    kakuro_kernel<<<grid_dim, block_dim>>>(d_sum_starts_x, d_sum_starts_y, d_sum_ends_x, d_sum_ends_y, d_sum_hints,
+										   d_sum_lengths, d_sum_dirs, d_sol_mat, d_t_mats, m, n,
+										   no_sums, d_solved);
+	cudaDeviceSynchronize();
     bool result = solution(sol_mat, sums, m, n, state_stack);
     end = omp_get_wtime(); 
     printf("Work took %f seconds\n", end - start);
@@ -523,6 +703,14 @@ int main(int argc, char **argv){
         cout << "COULD NOT SOLVE" << endl;
     }
     
+    cout << "SOLVED BY CUDA before copy: " << *solved << endl; 
+
+    cudaMemcpy(solved, d_solved, sizeof(bool), cudaMemcpyDeviceToHost);
+    cout << "SOLVED BY CUDA?: " << *solved << endl; 
+    
+
+
+    // DELETE PART 
     for (int i = 0; i < m; i++){
         delete mat[i];
         delete sol_mat[i];
@@ -530,5 +718,25 @@ int main(int argc, char **argv){
 
     delete mat;
     delete sol_mat;
+
+	delete h_sum_starts_x;
+	delete h_sum_starts_y;
+	delete h_sum_ends_x;
+	delete h_sum_ends_y;
+	delete h_sum_hints;
+	delete h_sum_lengths;
+	delete h_sum_dirs;
+	delete h_sol_mat;
+
+	cudaFree(d_t_mats);
+	cudaFree(d_sum_starts_x);
+	cudaFree(d_sum_starts_y);
+	cudaFree(d_sum_ends_x);
+	cudaFree(d_sum_ends_y);
+	cudaFree(d_sum_hints);
+	cudaFree(d_sum_lengths);
+	cudaFree(d_sum_dirs);
+	cudaFree(d_sol_mat);
+
     return 0;
 }
